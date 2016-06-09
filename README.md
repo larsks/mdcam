@@ -41,6 +41,10 @@ camera.  Typically, you do this by joining the wifi network
 address `192.168.1.1`.  You can use the `set_params` command to change
 the ip address used by the camera.
 
+If you are using a non-default address, you can set it on the command
+line with the `--ipaddr` option, or you can set the `MDCAM_IPADDR`
+environment variable.
+
 ### Taking a snapshot
 
 Take a snapshot by running:
