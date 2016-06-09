@@ -52,7 +52,7 @@ def cli(ctx, ipaddr, port, user, password, loglevel='WARN'):
     LOG.debug('using ipaddr %s, port %d', ctx.obj.ipaddr, ctx.obj.port)
 
 
-@click.command()
+@cli.command()
 @click.option('--output', '-o')
 def backup(output):
     if output is None:
@@ -70,7 +70,7 @@ def backup(output):
     click.echo('Configured saved to {}'.format(output))
 
 
-@click.command()
+@cli.command()
 @click.argument('paramfile')
 def restore(paramfile):
     raise RuntimeError('restore.cgi on the camera appears to be broken')
@@ -85,7 +85,7 @@ def restore(paramfile):
 
     click.echo('Configured restored.')
 
-@click.command()
+@cli.command()
 @click.option('--output', '-o')
 def snapshot(output):
     if output is None:
@@ -99,6 +99,8 @@ def snapshot(output):
 
     with open(output, 'w') as fd:
         fd.write(res.content)
+
+    click.echo('Snapshot saved to {}'.format(output))
 
 
 def show_kv_list(data, patterns, output):
@@ -114,7 +116,7 @@ def show_kv_list(data, patterns, output):
                              for k in sorted(selected)),
                    file=fd)
 
-@click.command()
+@cli.command()
 @click.option('--output', '-o')
 @click.argument('patterns', nargs=-1)
 def get_params(output, patterns):
@@ -125,7 +127,7 @@ def get_params(output, patterns):
     show_kv_list(res.json(), patterns, output)
 
 
-@click.command()
+@cli.command()
 @click.option('--output', '-o')
 @click.argument('patterns', nargs=-1)
 def get_status(output, patterns):
@@ -135,7 +137,7 @@ def get_status(output, patterns):
     show_kv_list(res.json(), patterns, output)
 
 
-@click.command()
+@cli.command()
 @click.option('-n', '--nosave', is_flag=True)
 @click.option('-r', '--reboot', is_flag=True)
 @click.argument('pspec', nargs=-1)
@@ -156,14 +158,14 @@ def set_params(nosave, reboot, pspec):
     click.echo('Configured.')
 
 
-@click.command()
+@cli.command()
 def streamurl():
     url = url_for('av.asf')
     click.echo('{}?{}'.format(
         url, urllib.urlencode(auth_params())))
 
 
-@click.command()
+@cli.command()
 def ls():
     res = requests.get(url_for('search_record.cgi'),
                        params=dict(json=1, **auth_params()))
@@ -179,7 +181,7 @@ def ls():
         ))
 
 
-@click.command()
+@cli.command()
 @click.option('-o', '--output')
 @click.argument('path')
 def download(output, path):
@@ -198,7 +200,7 @@ def download(output, path):
             fd.write(chunk)
 
 
-@click.command()
+@cli.command()
 @click.argument('name')
 def rm(name):
     res = requests.get(url_for('del_record.cgi'),
@@ -207,7 +209,7 @@ def rm(name):
     click.echo('Removed {}'.format(name))
 
 
-@click.command()
+@cli.command()
 @click.option('-l', '--length')
 def startrec(length):
     params = {'json': '1'}
@@ -223,7 +225,7 @@ def startrec(length):
     click.echo('Started recording task id {}'.format(res.json()['task']))
 
 
-@click.command()
+@cli.command()
 @click.argument('task')
 def stoprec(task):
     res = requests.get(url_for('stop_record.cgi'),
@@ -233,7 +235,7 @@ def stoprec(task):
     click.echo('Stopped recording task id {}'.format(task))
 
 
-@click.command()
+@cli.command()
 def log():
     res = requests.get(url_for('get_log.cgi'),
                        params=dict(json=1, **auth_params()))
@@ -244,19 +246,6 @@ def log():
         if event.get('user'):
             click.echo('{user} from {ip} at {t}'.format(**event))
 
-cli.add_command(snapshot)
-cli.add_command(get_status)
-cli.add_command(get_params)
-cli.add_command(set_params)
-cli.add_command(streamurl)
-cli.add_command(ls)
-cli.add_command(rm)
-cli.add_command(download)
-cli.add_command(startrec)
-cli.add_command(stoprec)
-cli.add_command(log)
-cli.add_command(backup)
-cli.add_command(restore)
 
 if __name__ == '__main__':
     cli(auto_envvar_prefix='DRONECAM')
