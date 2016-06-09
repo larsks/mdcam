@@ -26,6 +26,7 @@ def url_for(ctx, script):
               url, script)
     return url
 
+
 @click.pass_context
 def auth_params(ctx):
     return {'user': ctx.obj.user, 'pwd': ctx.obj.password}
@@ -53,8 +54,40 @@ def cli(ctx, ipaddr, port, user, password, loglevel='WARN'):
 
 @click.command()
 @click.option('--output', '-o')
-@click.pass_context
-def snapshot(ctx, output):
+def backup(output):
+    if output is None:
+        now = datetime.datetime.now()
+        output = 'backup-{}.txt'.format(now.isoformat())
+
+    res = requests.get(url_for('backup.cgi'),
+                       params=dict(json=1, **auth_params()))
+
+    res.raise_for_status()
+
+    with open(output, 'w') as fd:
+        fd.write(res.content)
+
+    click.echo('Configured saved to {}'.format(output))
+
+
+@click.command()
+@click.argument('paramfile')
+def restore(paramfile):
+    raise RuntimeError('restore.cgi on the camera appears to be broken')
+    with open(paramfile) as fd:
+        paramdata = fd.read()
+
+    res = requests.post(url_for('restore.cgi'),
+                        data={'file': paramdata},
+                        params=dict(json=1, **auth_params()))
+
+    res.raise_for_status()
+
+    click.echo('Configured restored.')
+
+@click.command()
+@click.option('--output', '-o')
+def snapshot(output):
     if output is None:
         now = datetime.datetime.now()
         output = 'snapshot-{}.jpg'.format(now.isoformat())
@@ -68,16 +101,7 @@ def snapshot(ctx, output):
         fd.write(res.content)
 
 
-@click.command()
-@click.option('--output', '-o')
-@click.argument('patterns', nargs=-1)
-@click.pass_context
-def get_params(ctx, output, patterns):
-    res = requests.get(url_for('get_params.cgi'),
-                       params=dict(json=1, **auth_params()))
-
-    res.raise_for_status()
-    data = res.json()
+def show_kv_list(data, patterns, output):
     selected = set()
     for pattern in patterns:
         matched = (set(fnmatch.filter(data.keys(), pattern)))
@@ -90,13 +114,32 @@ def get_params(ctx, output, patterns):
                              for k in sorted(selected)),
                    file=fd)
 
+@click.command()
+@click.option('--output', '-o')
+@click.argument('patterns', nargs=-1)
+def get_params(output, patterns):
+    res = requests.get(url_for('get_params.cgi'),
+                       params=dict(json=1, **auth_params()))
+
+    res.raise_for_status()
+    show_kv_list(res.json(), patterns, output)
+
+
+@click.command()
+@click.option('--output', '-o')
+@click.argument('patterns', nargs=-1)
+def get_status(output, patterns):
+    res = requests.get(url_for('get_status.cgi'),
+                       params=dict(json=1, **auth_params()))
+    res.raise_for_status()
+    show_kv_list(res.json(), patterns, output)
+
 
 @click.command()
 @click.option('-n', '--nosave', is_flag=True)
 @click.option('-r', '--reboot', is_flag=True)
 @click.argument('pspec', nargs=-1)
-@click.pass_context
-def set_params(ctx, nosave, reboot, pspec):
+def set_params(nosave, reboot, pspec):
     params = dict(x.split('=', 1) for x in pspec)
     params.update(auth_params())
 
@@ -190,7 +233,19 @@ def stoprec(task):
     click.echo('Stopped recording task id {}'.format(task))
 
 
+@click.command()
+def log():
+    res = requests.get(url_for('get_log.cgi'),
+                       params=dict(json=1, **auth_params()))
+    res.raise_for_status()
+
+    data = res.json()
+    for event in data['log']:
+        if event.get('user'):
+            click.echo('{user} from {ip} at {t}'.format(**event))
+
 cli.add_command(snapshot)
+cli.add_command(get_status)
 cli.add_command(get_params)
 cli.add_command(set_params)
 cli.add_command(streamurl)
@@ -199,6 +254,9 @@ cli.add_command(rm)
 cli.add_command(download)
 cli.add_command(startrec)
 cli.add_command(stoprec)
+cli.add_command(log)
+cli.add_command(backup)
+cli.add_command(restore)
 
 if __name__ == '__main__':
     cli(auto_envvar_prefix='DRONECAM')
