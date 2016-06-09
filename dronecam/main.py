@@ -2,10 +2,10 @@ import click
 import datetime
 import fnmatch
 import logging
+import os
 import requests
 import sys
 import urllib
-
 
 LOG = logging.getLogger(__name__)
 
@@ -120,10 +120,85 @@ def streamurl():
         url, urllib.urlencode(auth_params())))
 
 
+@click.command()
+def ls():
+    res = requests.get(url_for('search_record.cgi'),
+                       params=dict(json=1, **auth_params()))
+    res.raise_for_status()
+    data = res.json()
+
+    if data['result'] < 0:
+        raise RuntimeError('unable to list files ({result})'.format(**data))
+
+    for rec in data['record']:
+        click.echo('{path} {size}'.format(
+            **rec
+        ))
+
+
+@click.command()
+@click.option('-o', '--output')
+@click.argument('path')
+def download(output, path):
+    if output is None:
+        output = os.path.basename(path)
+
+    res = requests.get(url_for('get_record.cgi'),
+                       params=dict(path=path, json=1, **auth_params()),
+                       stream=True)
+
+    res.raise_for_status()
+
+    LOG.info('writing %s to %s', path, output)
+    with open(output, 'w') as fd:
+        for chunk in res.iter_content(chunk_size=8192):
+            fd.write(chunk)
+
+
+@click.command()
+@click.argument('name')
+def rm(name):
+    res = requests.get(url_for('del_record.cgi'),
+                       params=dict(name=name, json=1, **auth_params()))
+    res.raise_for_status()
+    click.echo('Removed {}'.format(name))
+
+
+@click.command()
+@click.option('-l', '--length')
+def startrec(length):
+    params = {'json': '1'}
+    params.update(auth_params())
+
+    if length is not None:
+        params['length'] = length
+
+    res = requests.get(url_for('start_record.cgi'),
+                       params=dict(**params))
+    res.raise_for_status()
+
+    click.echo('Started recording task id {}'.format(res.json()['task']))
+
+
+@click.command()
+@click.argument('task')
+def stoprec(task):
+    res = requests.get(url_for('stop_record.cgi'),
+                       params=dict(task=task, json=1, **auth_params()))
+    res.raise_for_status()
+
+    click.echo('Stopped recording task id {}'.format(task))
+
+
 cli.add_command(snapshot)
 cli.add_command(get_params)
 cli.add_command(set_params)
 cli.add_command(streamurl)
+cli.add_command(ls)
+cli.add_command(rm)
+cli.add_command(download)
+cli.add_command(startrec)
+cli.add_command(stoprec)
 
 if __name__ == '__main__':
     cli(auto_envvar_prefix='DRONECAM')
