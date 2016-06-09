@@ -87,6 +87,16 @@ Use the `download` command to download a video:
 The above would download the video to a file named `MOVI0007.mov` in
 the current directory.
 
+### Setting parameters
+
+To change the ipaddress and network range used by the camera:
+
+    mdcam set_params -r ap_ip=192.168.17.1 \
+      dhcpd_start_ip=192.168.17.100 \
+      dhcpd_end_ip=192.168.17.200
+
+This will reboot the camera (which will disrupt your wifi connection).
+
 ## License
 
 mdcam -- micro drone 3.0 camera utility  
