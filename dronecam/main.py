@@ -4,6 +4,7 @@ import fnmatch
 import logging
 import requests
 import sys
+import urllib
 
 
 LOG = logging.getLogger(__name__)
@@ -112,9 +113,17 @@ def set_params(ctx, nosave, reboot, pspec):
     click.echo('Configured.')
 
 
+@click.command()
+def streamurl():
+    url = url_for('av.asf')
+    click.echo('{}?{}'.format(
+        url, urllib.urlencode(auth_params())))
+
+
 cli.add_command(snapshot)
 cli.add_command(get_params)
 cli.add_command(set_params)
+cli.add_command(streamurl)
 
 if __name__ == '__main__':
     cli(auto_envvar_prefix='DRONECAM')
