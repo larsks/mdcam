@@ -138,6 +138,16 @@ def get_status(output, patterns):
 
 
 @cli.command()
+@click.option('--output', '-o')
+@click.argument('patterns', nargs=-1)
+def get_properties(output, patterns):
+    res = requests.get(url_for('get_properties.cgi'),
+                       params=dict(json=1, **auth_params()))
+    res.raise_for_status()
+    show_kv_list(res.json(), patterns, output)
+
+
+@cli.command()
 @click.option('-n', '--nosave', is_flag=True)
 @click.option('-r', '--reboot', is_flag=True)
 @click.argument('pspec', nargs=-1)
