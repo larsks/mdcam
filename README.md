@@ -4,6 +4,16 @@ for which [api documentation][api] is available online.
 
 [reecam]: http://wiki.reecam.cn/
 
+## Installation
+
+1. Clone the git repository:
+
+        git clone https://github.com/larsks/mdcam
+
+1. Install the code:
+
+        pip install ./mdcam
+
 ## Synopsis
 
     Usage: mdcam [OPTIONS] COMMAND [ARGS]...
