@@ -79,7 +79,7 @@ def backup(output):
 @cli.command()
 @click.argument('paramfile')
 def restore(paramfile):
-    raise RuntimeError('restore.cgi on the camera appears to be broken')
+    raise NotImplementedError('restore.cgi does not work as documented')
     with open(paramfile) as fd:
         paramdata = fd.read()
 
